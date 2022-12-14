@@ -2,6 +2,7 @@
 
 #define CLKPIN 0
 #define DATAPIN 0
+#define LATCHPIN 0
 
 // TYPE DECLARATIONS
 typedef unsigned char uint8_t, byte;
@@ -29,15 +30,15 @@ typedef long long int128_t;
 #define CLR(STREAM, N) STREAM &= ~(1 << (N))
 
 // SET/CLR without changing 1st or 2nd bits
-#define SETEXC1N2(STREAM, N) SET(STREAM, N) & 0b11111100
-#define CLREXC1N2(STREAM, N) CLR(STREAM, N) & 0b11111100
+// #define SETEXC1N2(STREAM, N) SET(STREAM, N) & 0b11111100
+// #define CLREXC1N2(STREAM, N) CLR(STREAM, N) & 0b11111100
 
 // SET/CLR without changing 6th or 7th bits
-#define SETEXC6N7(STREAM, N) SET(STREAM, N) & 0b00111111
-#define CLREXC6N7(STREAM, N) CLR(STREAM, N) & 0b00111111
+// #define SETEXC6N7(STREAM, N) SET(STREAM, N) & 0b00111111
+// #define CLREXC6N7(STREAM, N) CLR(STREAM, N) & 0b00111111
 
 // Kearney 12.7.22
-#define WRITEPIN(PIN, BSTREAM, DSTREAM, N) {	\
+#define WRITE_PIN(PIN, BSTREAM, DSTREAM, N) {	\
 	if (PIN >= 8 && PIN <= 13) { 		\
 		if (N & 1) {			\
 			SET(BSTREAM, PIN - 8);	\
@@ -60,7 +61,7 @@ typedef long long int128_t;
 // @param datum: the bit to set the pin
 // Kearney 12.7.22
 inline void writePin(uint8_t pin, bool datum) {
-	WRITEPIN(pin, PORTB, PORTD, datum);
+	WRITE_PIN(pin, PORTB, PORTD, datum);
 }
 
 // ! The following function is considered slow, use port manipulation directly when dealing with quick calculations or PWM.
@@ -88,23 +89,24 @@ inline void setPinMode(uint8_t pin, bool mode) {
 
 uint16_t PWMData;		// The PWM timing data.
 uint128_t duePWM[6] = { 	// The delay between PWM pulses
-	(uint64_t)micros(), 	// Front Right
-	(uint64_t)micros(),	// Front Left
-	(uint64_t)micros(), 	// Back Right
-	(uint64_t)micros(), 	// Back Left
-	(uint64_t)micros(), 	// Launcher Right
-	(uint64_t)micros()	// Launcher Left
+	(uint64_t)millis(), 	// Front Right
+	(uint64_t)millis(),	// Front Left
+	(uint64_t)millis(), 	// Back Right
+	(uint64_t)millis(), 	// Back Left
+	(uint64_t)millis(), 	// Launcher Right
+	(uint64_t)millis()	// Launcher Left
 }
 
 uint8_t outputPin[4] = { 	// The shift register pins to be pulsed
-	// >> 1 for Left Wheels to swap them to reverse mode. << 1 for Right wheels to do the same.
+	// >> 1 for Left Wheels to swap them to reverse mode. << 1 for Right wheels to do the same. it's that simple, no additional logic needed
+	// e.g. `outputPin[0] <<= 1;` changes the front right wheel to reverse
 	1 << 0, // Front Right
 	1 << 3, // Front Left
 	1 << 4, // Back Right
 	1 << 7	// Back Left
 }
 
-// GND/VCC on motor srivers from shift register:
+// GND/VCC on motor drivers from shift register:
 /*
 2Q4 - MMRF VCC
 2Q3 - MMRF GND
@@ -122,9 +124,6 @@ uint8_t outputPin[4] = { 	// The shift register pins to be pulsed
 1Q1 - LML VCC
 */
 
-// revData is multiple boolean variables (conglomerated into one) which swaps which pin is being pulsed
-// Kearney 12.14.22
-
 inline void shiftOutFast(uint8_t dataPin, uint8_t clkPin, uint16_t data) {
 	// latch low
 
@@ -140,52 +139,54 @@ inline void shiftOutFast(uint8_t dataPin, uint8_t clkPin, uint16_t data) {
 	// latch high
 }
 
-// calculations for speed
-uint8_t launcherRightSpeed = 0,
+// Individual motor speed calculations
+uint8_t launcherRightSpeed,
 	launcherLeftSpeed,
 	frontRightSpeed,
 	frontLeftSpeed,
 	backRightSpeed,
 	backLeftSpeed;
 
+// Kearney 12.14.22
 void pulseDuePWM() {
 	// flush
-	PWMData ^= PWMData; // Clear PWM data variable (set to zero) with xor. Just incase The compiler doesn't go for maximum optimability
-	
+	PWMData ^= PWMData; // Clear PWM data variable (set to zero) with XOR. XOR Just incase The compiler doesn't go for maximum optimability	
+	register uint64_t time = millis();
+
+	// Instead of looping, loop unrolling is used. This is to improve speed ever so slightly.
 	// Launcher Right
-	if (micros() >= duePWM[4]) {
-		duePWM[4] = micros() + launcherRightSpeed;
+	if (time >= duePWM[4]) {
+		duePWM[4] = time + launcherRightSpeed;
 		PWMData |= (uint16_t)(1 << 8);
 	}
 
 	// Launcher Left
-	if (micros() >= duePWM[5]) {
-		duePWM[5] = micros() + launcherLeftSpeed;
+	if (time >= duePWM[5]) {
+		duePWM[5] = time + launcherLeftSpeed;
 		PWMData |= (uint16_t)(1 << 11);
 	}
 
-	// Instead of looping, loop unrolling is used. This is to improve speed ever so slightly.
 	// Front Right
-	if (micros() >= duePWM[0]) {
-		duePWM[0] = micros() + frontRightSpeed;
+	if (time >= duePWM[0]) {
+		duePWM[0] = time + frontRightSpeed;
 		PWMData |= outputPin[0];
 	}
 
 	// Front Left
-	if (micros() >= duePWM[1]) {
-		duePWM[1] = micros() + frontLeftSpeed;
+	if (time >= duePWM[1]) {
+		duePWM[1] = time + frontLeftSpeed;
 		PWMData |= outputPin[1];
 	}
 
 	// Back Right
-	if (micros() >= duePWM[2]) {
-		duePWM[1] = micros() + backRightSpeed;
+	if (time >= duePWM[2]) {
+		duePWM[1] = time + backRightSpeed;
 		PWMData |= outputPin[2];
 	}
 
 	// Back Left
-	if (micros() >= duePWM[3]) {
-		duePWM[1] = micros() + backLeftSpeed;
+	if (time >= duePWM[3]) {
+		duePWM[1] = time + backLeftSpeed;
 		PWMData |= outputPin[3];
 	}
 
