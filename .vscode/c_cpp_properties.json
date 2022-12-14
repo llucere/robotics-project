@@ -13,7 +13,7 @@
                 "-fno-threadsafe-statics",
                 "-Wno-error=narrowing"
             ],
-            "intelliSenseMode": "gcc-x64",
+            "intelliSenseMode": "clang-x86",
             "includePath": [
                 "C:\\Users\\bryan\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.5\\cores\\arduino",
                 "C:\\Users\\bryan\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.5\\variants\\standard",
@@ -24,8 +24,8 @@
             "forcedInclude": [
                 "C:\\Users\\bryan\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.5\\cores\\arduino\\Arduino.h"
             ],
-            "cStandard": "c11",
-            "cppStandard": "c++11",
+            "cStandard": "c17",
+            "cppStandard": "c++23",
             "defines": [
                 "F_CPU=16000000L",
                 "ARDUINO=10819",
