@@ -114,7 +114,7 @@ uint128_t duePWM[6] = { 	// The delay between PWM pulses
 
 uint8_t outputPin[4] = { 	// The shift register pins to be pulsed
 	// >> 1 for Left Wheels to swap them to reverse mode. << 1 for Right wheels to do the same. it's that simple, no additional logic needed
-	// e.g. `outputPin[0] <<= 1;` changes the front right wheel to reverse
+	// e.g. `outputPin[0] <<= 1;` changes the front right wheel to reverse. doing this operation again messes stuff up unless u set it back
 	1 << 0, // Front Right
 	1 << 3, // Front Left
 	1 << 4, // Back Right
@@ -147,6 +147,12 @@ inline void setReverse(uint8_t index, bool rev) {
 
 // GND/VCC on motor drivers from shift register:
 /*
+quick documentation:
+- 1 is the first shift register, 2 is the one daisy-chained to it
+- Q4, Q8, Q2, Q3, etc, are the output pins of the corresponding shift register
+- VCC and GND really doesnt make sense here but its pretty much the two pins connected to the motor from the shift register to the motor driver to the motor.
+- MM means the movement motor, R means right, L means left (and launcher for the last 4), F is front, B is back
+
 2Q4 - MMRF VCC
 2Q3 - MMRF GND
 2Q2 - MMLF GND
@@ -190,7 +196,6 @@ uint32_t launcherRightSpeed,
 
 // Kearney 12.14.22
 void pulseDuePWM() {
-	// flush
 	PWMData ^= PWMData; // Clear PWM data variable (set to zero) with XOR. XOR Just incase The compiler doesn't go for maximum optimability	
 	register uint64_t time = millis();
 
@@ -198,13 +203,13 @@ void pulseDuePWM() {
 	// Launcher Right
 	if (time >= duePWM[4]) {
 		duePWM[4] = time + launcherRightSpeed;
-		PWMData |= (uint16_t)(1 << 8);
+		PWMData |= 1 << 8; // 1<<8 is the pin to set
 	}
 
 	// Launcher Left
 	if (time >= duePWM[5]) {
 		duePWM[5] = time + launcherLeftSpeed;
-		PWMData |= (uint16_t)(1 << 11);
+		PWMData |= 1 << 11;  // 1<<11 is the pin to set
 	}
 
 	// Front Right
