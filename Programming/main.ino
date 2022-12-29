@@ -175,7 +175,7 @@ inline void shiftOutFast(uint8_t dataPin, uint8_t clkPin, uint16_t data) {
 	/*
 	for 0 to 15 do
 	{
-		/ send bit to data pin
+		/ send lsb to data pin
 		/ clk high
 		/ clk low
 		/ shift data >> 1
