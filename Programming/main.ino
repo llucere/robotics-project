@@ -242,7 +242,7 @@ void pulseDuePWM() {
 
 // Kearney 12.15.22
 inline void setSpeed(uint32_t* speedVariable, uint16_t speed) {
-	*speedVariable = (16 * SQR(ABS(speed))) / 1000;
+	*speedVariable = (16 * SQR(speed)) / 1000;
 }
 
 inline void config() {
