@@ -172,7 +172,7 @@ inline void shiftOutFast(uint8_t dataPin, uint8_t clkPin, uint16_t data) {
 	/*
 	for 0 to 15 do
 	{
-		/ send bit to data pin
+		/ send lsb to data pin
 		/ clk high
 		/ clk low
 		/ shift data >> 1
@@ -239,7 +239,7 @@ void pulseDuePWM() {
 
 // Kearney 12.15.22
 inline void setSpeed(uint32_t* speedVariable, uint16_t speed) {
-	*speedVariable = (16 * SQR(ABS(speed))) / 1000;
+	*speedVariable = (16 * SQR(speed)) / 1000;
 }
 
 inline void config() {
