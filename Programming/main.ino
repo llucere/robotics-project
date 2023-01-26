@@ -1,5 +1,3 @@
-#include <SoftwareSerial.h>
-
 #define CLKPIN 0
 #define DATAPIN 0
 #define LATCHPIN 0
@@ -20,7 +18,6 @@ typedef int int32_t;
 typedef long int64_t;
 typedef long long int128_t;
 
-SoftwareSerial BluetoothModule(BTRXPIN, BTTXPIN); // RX, TX
 /*
 ? queries - https://ccrma.stanford.edu/~fgeorg/250a/lab2/arduino-0019/reference/PortManipulation.html
 * B - 8:13 (PORTB, DDRB, PINB) (two high bits, 6 & 7, are not usable)
@@ -251,19 +248,19 @@ inline void config() {
 }
 
 void setup() {
-	
+	Serial.begin(38400); // the default communication rate of bt module
 }
 
 
 
 uint64_t lastRec = millis();
 void loop() {
-	if (BluetoothModule.available() >= 4) {
+	if (Serial.available() >= 4) {
 		// if 4 bytes are able to be read
-		uint8_t instruction = BluetoothModule.read();
+		uint8_t instruction = Serial.read();
 		int8_t data[3];
 		for (int i = 0; i < 3; i++) {
-			data[i] = BluetoothModule.read();
+			data[i] = Serial.read();
 		}
 
 		// reset reverse data
@@ -275,6 +272,8 @@ void loop() {
 		switch (instruction) {
 			case (movementOPC):
 				// change motors to reverse mode, execute speed functions, etc.
+
+				// instruction, x, z (order which data is sent)
 				int8_t X = data[0] * 6.35, Z = data[1] * 6.35;
 				int8_t midPoint = (X + Z) / 2;
 
@@ -301,13 +300,13 @@ void loop() {
 						// turn left
 					} elseif (Z < 0) {
 						// move back left
+						setReverse(frontLeftRev, true);
+						setReverse(backRightRev, true);
+
 						setSpeed(&frontLeftWheel, (int8_t)(Z / 3));
 						setSpeed(&backRightWheel, (int8_t)(Z / 3));
 						backLeftWheel = 0;
 						frontRightWheel = 0;
-
-						setReverse(frontLeftRev, true);
-						setReverse(backRightRev, true);
 					}
 				}
 
